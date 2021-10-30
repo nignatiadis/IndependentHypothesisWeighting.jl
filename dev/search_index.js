@@ -1,0 +1,3 @@
+var documenterSearchIndex = {"docs":
+[{"location":"","page":"Home","title":"Home","text":"CurrentModule = IndependentHypothesisWeighting","category":"page"},{"location":"#IndependentHypothesisWeighting","page":"Home","title":"IndependentHypothesisWeighting","text":"","category":"section"},{"location":"","page":"Home","title":"Home","text":"Documentation for IndependentHypothesisWeighting.","category":"page"},{"location":"","page":"Home","title":"Home","text":"","category":"page"},{"location":"","page":"Home","title":"Home","text":"Modules = [IndependentHypothesisWeighting]","category":"page"}]
+}
