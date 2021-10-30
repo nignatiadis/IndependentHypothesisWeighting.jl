@@ -1,6 +1,10 @@
 using IndependentHypothesisWeighting
 using Test
 
+
+
 @testset "IndependentHypothesisWeighting.jl" begin
-    # Write your tests here.
+    include("test_weighted_multiple_testing.jl")
+    include("test_ihw.jl")
+    include("test_grenander.jl")
 end

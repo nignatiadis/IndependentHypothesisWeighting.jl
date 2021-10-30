@@ -4,12 +4,12 @@ using Reexport
 
 using CategoricalArrays
 using Distributions
-import Distributions:cdf, pdf
+import Distributions: cdf, pdf
 using Intervals
-import MLDataPattern:kfolds,FoldsView,shuffleobs
+import MLDataPattern: kfolds, FoldsView, shuffleobs
 
 @reexport using MultipleTesting
-import MultipleTesting:adjust
+import MultipleTesting: adjust
 
 using Random
 using SplitApplyCombine
@@ -27,9 +27,9 @@ include("discretization_weight_learners.jl")
 
 
 export PriorityWeights,
-       IHW,
-       GBHLearner,
-       GrenanderLearner,
-	   QuantileSlicingDiscretizer,
-	   DiscretizationWeightLearner
+    IHW,
+    GBHLearner,
+    GrenanderLearner,
+    QuantileSlicingDiscretizer,
+    DiscretizationWeightLearner
 end
