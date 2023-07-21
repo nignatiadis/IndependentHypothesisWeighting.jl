@@ -6,7 +6,7 @@ using CategoricalArrays
 using Distributions
 import Distributions: cdf, pdf
 using Intervals
-import MLDataPattern: kfolds, FoldsView, shuffleobs
+import MLUtils: kfolds, shuffleobs
 
 @reexport using MultipleTesting
 import MultipleTesting: adjust

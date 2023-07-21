@@ -36,7 +36,7 @@ struct IHWResult{
     I<:IHW,
     XT,
     P,
-    KF<:FoldsView, #split into folds
+    KF, #split into folds
     WF, #modelfits
     W<:AbstractWeights,
 }

@@ -48,11 +48,11 @@ ihw_grenander_fit_discr = fit(ihw_discr, Ps, Xs_cont)
 using JuMP
 using Clp
 using LinearAlgebra
-using MLDataPattern
+using MLUtils
 
-for fold_idx in [1;2]
-	train_idx, test_idx = ihw_grenander_fit.kfolds[fold_idx]
 
+for (fold_idx, idx) in enumerate(ihw_grenander_fit.kfolds)
+    train_idx, test_idx = idx
 	Ps_train = Ps[train_idx]
 	Xs_train = Xs[train_idx]
 

@@ -80,7 +80,7 @@ function learn_weights(
     train_grenander = fit.(Ref(Grenander()), train_data_view)
 
     all_λs = sort(vcat([gr.fs for gr in train_grenander]...), rev = true)
-    α = 0.1
+
     λ_idx = findfirst(
         λ -> α ∈ lagrange_balance(λ, train_grenander, test_ms, α, BenjaminiHochberg()),
         all_λs,
