@@ -21,7 +21,7 @@ function learn_discretizations(
 end
 
 struct DiscretizationWeightLearner{CW<:CategoricalWeightLearner,D<:AbstractDiscretizer} <:
-       WeightLearner
+       AbstractWeightLearner
     wlearner::CW
     discretizer::D
 end

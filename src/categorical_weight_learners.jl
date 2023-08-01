@@ -1,5 +1,5 @@
-abstract type CategoricalWeightLearner <: WeightLearner end
-abstract type CategoricalWeightLearnerFit <: WeightLearner end
+abstract type CategoricalWeightLearner <: AbstractWeightLearner end
+abstract type CategoricalWeightLearnerFit <: WeightLearnerFit end
 
 struct GBHLearner <: CategoricalWeightLearner
     pi0estimator::Pi0Estimator
@@ -46,7 +46,7 @@ function _Fdr_linearized(ts, Fs, ms, α)
 end
 
 function lagrange_balance(λ, grs, ms, α, ::BenjaminiHochberg; linearized = false)
-    ts = IndependentHypothesisWeighting.invert_subgradient.(grs, λ)
+    ts = invert_subgradient.(grs, λ)
     ts_L = first.(ts)
     ts_R = last.(ts)
     Fs_L = cdf.(grs, ts_L)
@@ -79,6 +79,18 @@ function learn_weights(
     train_data_view = view(train_data, keys(test_ms))
     train_grenander = fit.(Ref(Grenander()), train_data_view)
 
+    ts_mixed = unregularized_thresholds_bh(train_grenander, test_ms, α)
+
+    ts_mixed = sum(test_ms) .* ts_mixed ./ sum(ts_mixed .* test_ms)
+
+    ws = ones(size(Xs_test, 1))
+    @inbounds for i in eachindex(axes(Xs_test, 1))
+        ws[i] = get(ts_mixed, Xs_test[i], 0.0)
+    end
+    ws, ts_mixed
+end
+
+function unregularized_thresholds_bh(train_grenander, test_ms, α)
     all_λs = sort(vcat([gr.fs for gr in train_grenander]...), rev = true)
 
     λ_idx = findfirst(
@@ -90,8 +102,6 @@ function learn_weights(
     ts = invert_subgradient.(train_grenander, λ_opt)
     ts_L = first.(ts)
     ts_R = last.(ts)
-    Fs_L = cdf.(train_grenander, ts_L)
-    Fs_R = cdf.(train_grenander, ts_R)
 
     lin_Fdr = lagrange_balance(
         λ_opt,
@@ -103,12 +113,5 @@ function learn_weights(
     )
     tmp_comb = last(lin_Fdr) ./ Intervals.span(lin_Fdr)
 
-    ts_mixed = tmp_comb .* ts_L .+ (1 - tmp_comb) .* ts_R
-    ts_mixed = sum(test_ms) .* ts_mixed ./ sum(ts_mixed .* test_ms)
-
-    ws = ones(size(Xs_test, 1))
-    @inbounds for i = 1:size(Xs_test, 1)
-        ws[i] = get(ts_mixed, Xs_test[i], 0.0)
-    end
-    ws, ts_mixed
+    tmp_comb .* ts_L .+ (1 - tmp_comb) .* ts_R
 end

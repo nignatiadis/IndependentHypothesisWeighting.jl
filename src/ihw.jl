@@ -1,8 +1,19 @@
-abstract type WeightLearner end
+abstract type AbstractWeightLearner end
 abstract type WeightLearnerFit end
 
+struct Multi end
+struct Single end
 
-Base.@kwdef struct IHW{M<:PValueAdjustment,WL<:WeightLearner,F,T}
+single_or_multi(::AbstractWeightLearner) = Single()
+
+function nweightchoices(w::AbstractWeightLearner)
+    nweightchoices(single_or_multi(w), w)
+end
+
+nweightchoices(::Single, w) = 1
+
+
+Base.@kwdef struct IHW{M<:PValueAdjustment,WL<:AbstractWeightLearner,F,T}
     multiple_testing_method::M = BenjaminiHochberg()
     folds::F = 5
     weight_learner::WL
@@ -11,7 +22,7 @@ end
 
 # interface for weight learner
 function learn_weights(
-    weight_learner::WeightLearner,
+    weight_learner::AbstractWeightLearner,
     Ps_train,
     Xs_train,
     Xs_test,
@@ -19,7 +30,7 @@ function learn_weights(
     multiple_testing_method,
 ) end
 
-struct UnitWeightLearner <: WeightLearner end
+struct UnitWeightLearner <: AbstractWeightLearner end
 
 function learn_weights(
     ::UnitWeightLearner,
@@ -38,7 +49,7 @@ struct IHWResult{
     P,
     KF, #split into folds
     WF, #modelfits
-    W<:AbstractWeights,
+    W
 }
     pvals::P
     Xs::XT
@@ -55,7 +66,11 @@ function fit(ihw::IHW, Ps, Xs)
     m = length(Ps)
     kf = kfolds(shuffleobs(1:m), folds)
 
-    ws = PriorityWeights(ones(m))
+    if isa(single_or_multi(weight_learner), Single)
+        ws = PriorityWeights(ones(m))
+    else
+        ws = [PriorityWeights(one(m)) for _ in Base.OneTo(nweightchoices)]
+    end
     weighting_fits = []
 
     # Initialize MLJ machine
@@ -67,6 +82,8 @@ function fit(ihw::IHW, Ps, Xs)
             Xs_train_view = view(Xs, train_idx, :)
             Xs_test_view = view(Xs, test_idx, :)
         end
+
+        #return (Ps=view(Ps, train_idx), Xs_train=Xs_train_view, Xs_test=Xs_test_view)
         tmp_wts, tmp_fit = learn_weights(
             weight_learner,
             view(Ps, train_idx),
@@ -77,14 +94,35 @@ function fit(ihw::IHW, Ps, Xs)
         )
 
         push!(weighting_fits, tmp_fit)
-        ws[test_idx] = tmp_wts .* length(test_idx) ./ sum(tmp_wts)
+
+        if isa(single_or_multi(weight_learner), Single)
+            ws[test_idx] = tmp_wts .* length(test_idx) ./ sum(tmp_wts)
+        else
+            for i in Base.OneTo(nweightchoices(weight_learner))
+                ws[i][test_idx] = tmp_wts[i] .* length(test_idx) ./ sum(tmp_wts[i])
+            end
+        end
     end
 
-    adj_p = MultipleTesting.adjust(Ps, ws, multiple_testing_method)
+    if isa(single_or_multi(weight_learner), Single)
+        adj_p = MultipleTesting.adjust(Ps, ws, multiple_testing_method)
+    else
+        adj_p = [MultipleTesting.adjust(Ps, ws[i], multiple_testing_method) for i in Base.OneTo(length(ws))]
+    end
 
     IHWResult(Ps, Xs, ws, adj_p, kf, weighting_fits, ihw)
 end
 
+# want to add
 
 adjust(ihwres::IHWResult) = ihwres.adjusted_pvals
 weights(ihwres::IHWResult) = ihwres.weights
+
+rejections(ihwres::IHWResult) = rejections(ihwres, single_or_multi(ihwres.ihw_options.weight_learner))
+
+rejections(ihwres::IHWResult, ::Single) = sum(ihwres.adjusted_pvals .<= ihwres.ihw_options.α)
+
+function rejections(ihwres::IHWResult, ::Multi)
+    n = nweightchoices(ihwres.ihw_options.weight_learner)
+    [sum(ihwres.adjusted_pvals[i] .<= ihwres.ihw_options.α) for i in Base.OneTo(n)]
+end
